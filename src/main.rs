@@ -1,4 +1,8 @@
-use std::fmt;
+use rand::prelude::*;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+use std::{fmt, io};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Rank {
@@ -303,10 +307,74 @@ pub fn has_gin(hand: &Hand) -> bool {
     false
 }
 
+fn gen_deck<R>(rng: &mut R) -> Vec<Card>
+where
+    R: Rng,
+{
+    let mut deck: Vec<Card> = Vec::new();
+    for rank in vec![
+        Rank::ACE,
+        Rank::TWO,
+        Rank::THREE,
+        Rank::FOUR,
+        Rank::FIVE,
+        Rank::SIX,
+        Rank::SEVEN,
+        Rank::EIGHT,
+        Rank::NINE,
+        Rank::TEN,
+        Rank::JACK,
+        Rank::QUEEN,
+        Rank::KING,
+    ] {
+        for suit in vec![Suit::CLUB, Suit::SPADE, Suit::HEART, Suit::DIAMOND] {
+            deck.push(Card {
+                rank: rank.clone(),
+                suit: suit.clone(),
+            });
+        }
+    }
+    deck.shuffle(rng);
+    deck
+}
+
+fn gen_opponent_hand<R>(deck: &mut Vec<Card>, rng: &mut R) -> Hand
+where
+    R: Rng,
+{
+    let path = Path::new("./seed_hands.txt");
+    let display = path.display();
+
+    let file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}: {}", display, why),
+        Ok(file) => file,
+    };
+    let mut hands: Vec<String> = Vec::new();
+    let lines = io::BufReader::new(file).lines();
+
+    for line in lines {
+        match line {
+            Err(why) => panic!("couldn't read line: {}", why),
+            Ok(text) => hands.push(text),
+        };
+    }
+
+    let choice: usize = rng.gen_range(0..hands.len());
+
+    let hand = hand_from_str(&hands[choice]).unwrap();
+    for card in &hand {
+        let index = deck.iter().position(|x| *x == *card).unwrap();
+        deck.remove(index);
+    }
+
+    hand
+}
+
 fn main() {
-    let hand = hand_from_str("7H 8H 9H TH 6H 6D 6S KH KD KC").unwrap();
-    println!("{}", hand_to_string(&hand));
-    println!("Can gin: {}", has_gin(&hand));
+    let mut rng = rand::thread_rng();
+    let mut deck = gen_deck(&mut rng);
+    let opp_hand = gen_opponent_hand(&mut deck, &mut rng);
+    println!("Opponent:\n{}", hand_to_string(&opp_hand));
 }
 
 #[cfg(test)]
