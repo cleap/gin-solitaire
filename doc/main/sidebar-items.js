@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Rank",""],["Suit",""]],"fn":[["hand_from_str","Creates a hand from an input string"],["has_gin","Checks if a hand can gin"]],"struct":[["Card",""]],"type":[["Hand",""]]});
